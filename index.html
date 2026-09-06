@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>節約帳</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap');
+
+:root{
+  --cover: #17213B;
+  --cover-line: #3A4A73;
+  --foil: #C9A24B;
+  --foil-dim: #8E7638;
+  --paper: #EFE8D6;
+  --paper-2: #E7DEC7;
+  --ink: #2A2114;
+  --ink-dim: #6B6250;
+  --rule: #C7B99C;
+  --brick: #8C3B32;
+  --brick-dim: #B97268;
+  --gold: #A9822F;
+}
+
+*{ box-sizing: border-box; }
+
+body{
+  margin:0;
+  background: var(--cover);
+  font-family: 'Zen Kaku Gothic New', sans-serif;
+  color: var(--ink);
+  display:flex;
+  justify-content:center;
+  min-height:100vh;
+}
+
+#app{
+  width:100%;
+  max-width:460px;
+  min-height:100vh;
+  background: var(--paper);
+  display:flex;
+  flex-direction:column;
+}
+
+/* ---- Cover / hero ---- */
+.cover{
+  background: var(--cover);
+  color: #EDE7D6;
+  padding: 22px 20px 26px;
+  position:relative;
+}
+.cover::after{
+  content:"";
+  position:absolute; left:0; right:0; bottom:0;
+  height:6px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.25), transparent);
+}
+.month-nav{
+  display:flex; align-items:center; justify-content:center;
+  gap:18px;
+  font-family:'Shippori Mincho', serif;
+  font-size:15px;
+  letter-spacing:.04em;
+  color:#D9CFB0;
+  margin-bottom:14px;
+}
+.month-nav button{
+  background:none; border:1px solid var(--cover-line); color:#D9CFB0;
+  width:28px; height:28px; border-radius:50%;
+  font-size:14px; cursor:pointer; line-height:1;
+  display:flex; align-items:center; justify-content:center;
+}
+.month-nav button:hover{ background: var(--cover-line); }
+
+.app-title{
+  text-align:center;
+  font-family:'Shippori Mincho', serif;
+  font-weight:800;
+  font-size:13px;
+  letter-spacing:.35em;
+  color: var(--foil);
+  margin: 0 0 18px;
+}
+
+.hero{
+  text-align:center;
+}
+.hero-label{
+  font-size:12px;
+  color:#B7AE93;
+  margin-bottom:6px;
+}
+.hero-amount{
+  font-family:'Shippori Mincho', serif;
+  font-weight:700;
+  font-size:40px;
+  color: var(--foil);
+  font-variant-numeric: tabular-nums;
+  line-height:1.1;
+}
+.hero-sub{
+  margin-top:10px;
+  display:flex;
+  justify-content:center;
+  gap:22px;
+  font-size:12.5px;
+  color:#C8BFA5;
+}
+.hero-sub b{
+  font-variant-numeric: tabular-nums;
+  color:#E7DFC6;
+  font-weight:700;
+}
+
+/* ---- Tabs ---- */
+.storage-warning{
+  background: #F4E3C0;
+  color: #6B4A1E;
+  font-size:12px;
+  line-height:1.6;
+  padding:10px 16px;
+  border-bottom:1px solid var(--rule);
+}
+
+.tabs{
+  display:flex;
+  background: var(--paper-2);
+  border-bottom:1px solid var(--rule);
+}
+.tab{
+  flex:1;
+  text-align:center;
+  padding:12px 4px 10px;
+  font-size:13px;
+  color: var(--ink-dim);
+  cursor:pointer;
+  border-bottom:2px solid transparent;
+  user-select:none;
+}
+.tab.active{
+  color: var(--ink);
+  border-bottom-color: var(--brick);
+  font-weight:700;
+}
+
+.panel{ display:none; padding:20px 20px 32px; flex:1; }
+.panel.active{ display:block; }
+
+/* ---- Form ---- */
+.field{ margin-bottom:18px; }
+.field-label{
+  font-size:12px;
+  color: var(--ink-dim);
+  margin-bottom:8px;
+}
+
+.chips{ display:flex; flex-wrap:wrap; gap:8px; }
+.chip{
+  padding:7px 14px;
+  border:1px solid var(--rule);
+  border-radius:16px;
+  font-size:13px;
+  color: var(--ink);
+  background: var(--paper);
+  cursor:pointer;
+}
+.chip.selected{ background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.chip.add{ color: var(--ink-dim); border-style:dashed; }
+
+.add-cat-inline{ display:flex; gap:8px; margin-top:10px; }
+.add-cat-inline input{ flex:1; }
+
+input[type=text], input[type=number], input[type=date]{
+  width:100%;
+  border:none;
+  border-bottom:1px solid var(--rule);
+  background:transparent;
+  font-family:inherit;
+  font-size:15px;
+  color: var(--ink);
+  padding:8px 2px;
+}
+input:focus{ outline:none; border-bottom-color: var(--ink); }
+
+.amount-row{ display:flex; align-items:baseline; gap:6px; }
+.amount-row span{ font-family:'Shippori Mincho', serif; font-size:20px; color: var(--ink-dim); }
+.amount-row input{ font-family:'Shippori Mincho', serif; font-size:26px; font-variant-numeric: tabular-nums; }
+.expense-amount input, .expense-amount span{ color: var(--brick); }
+.expense-amount input{ border-bottom-color: var(--brick-dim); }
+.saved-amount input, .saved-amount span{ color: var(--gold); }
+.saved-amount input{ border-bottom-color: var(--foil); }
+
+.btn-primary{
+  width:100%;
+  padding:13px;
+  border:none;
+  border-radius:8px;
+  background: var(--ink);
+  color: var(--paper);
+  font-family:inherit;
+  font-size:15px;
+  font-weight:700;
+  cursor:pointer;
+  margin-top:6px;
+}
+.btn-primary:active{ opacity:.85; }
+
+/* ---- History ---- */
+.day-group{ margin-bottom:22px; }
+.day-heading{
+  font-size:12px;
+  color: var(--ink-dim);
+  padding-bottom:6px;
+  border-bottom:1px solid var(--rule);
+  margin-bottom:8px;
+}
+.ledger-line{
+  display:flex;
+  align-items:baseline;
+  padding:9px 0;
+  cursor:pointer;
+}
+.ledger-line .cat{
+  font-size:14px;
+  white-space:nowrap;
+}
+.ledger-line .memo{
+  font-size:12px;
+  color: var(--ink-dim);
+  margin-left:6px;
+}
+.ledger-line .leader{
+  flex:1;
+  border-bottom: 1px dotted var(--rule);
+  margin: 0 6px;
+  transform: translateY(-4px);
+}
+.ledger-line .amt{
+  font-family:'Shippori Mincho', serif;
+  font-size:15px;
+  font-variant-numeric: tabular-nums;
+  white-space:nowrap;
+}
+.ledger-line .amt.expense{ color: var(--brick); }
+.ledger-line .amt.saved{ color: var(--gold); }
+.ledger-line.confirming{ background: rgba(140,59,50,0.08); border-radius:6px; }
+.ledger-line .confirm-del{
+  font-size:12px; color: var(--brick); margin-left:10px; font-weight:700;
+}
+.empty-note{
+  text-align:center;
+  color: var(--ink-dim);
+  font-size:13px;
+  padding:30px 10px;
+}
+
+/* ---- Summary ---- */
+.summary-totals{
+  display:flex;
+  gap:10px;
+  margin-bottom:24px;
+}
+.total-card{
+  flex:1;
+  background: var(--paper-2);
+  border-radius:10px;
+  padding:14px 10px;
+  text-align:center;
+}
+.total-card .t-label{ font-size:11px; color: var(--ink-dim); margin-bottom:6px; }
+.total-card .t-amt{ font-family:'Shippori Mincho', serif; font-size:19px; font-variant-numeric: tabular-nums; }
+.total-card.expense .t-amt{ color: var(--brick); }
+.total-card.saved .t-amt{ color: var(--gold); }
+.total-card.net .t-amt{ color: var(--ink); }
+
+.cat-row{ margin-bottom:14px; }
+.cat-row .cat-name{ font-size:13px; margin-bottom:5px; }
+.cat-bar-track{
+  position:relative;
+  height:18px;
+  background: var(--paper-2);
+  border-radius:4px;
+  overflow:hidden;
+}
+.cat-bar{
+  position:absolute; top:0; bottom:0;
+  border-radius:4px;
+}
+.cat-bar.expense{ background: var(--brick-dim); left:0; }
+.cat-bar.saved{ background: var(--foil); left:0; }
+.cat-figures{
+  display:flex; justify-content:space-between;
+  font-size:11px; color: var(--ink-dim); margin-top:3px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Categories ---- */
+.cat-manage-row{
+  display:flex; align-items:center;
+  padding:11px 0;
+  border-bottom:1px solid var(--rule);
+  gap:8px;
+}
+.cat-manage-row input{ flex:1; }
+.icon-btn{
+  background:none; border:none; cursor:pointer;
+  color: var(--ink-dim); font-size:16px; padding:4px 6px;
+}
+.icon-btn:hover{ color: var(--brick); }
+.reorder-wrap{ display:flex; flex-direction:column; flex-shrink:0; }
+.reorder-btn{ font-size:10px; padding:1px 4px; line-height:1.3; }
+.reorder-btn:disabled{ opacity:.25; cursor:default; }
+.reorder-btn:disabled:hover{ color: var(--ink-dim); }
+.add-cat-form{ display:flex; gap:8px; margin-top:16px; }
+.add-cat-form input{ flex:1; }
+.add-cat-form button{
+  padding:0 16px;
+  border:none; border-radius:6px;
+  background: var(--ink); color: var(--paper);
+  font-family:inherit; font-weight:700; cursor:pointer;
+}
+
+.backup-section{
+  margin-top:30px;
+  padding-top:20px;
+  border-top:1px solid var(--rule);
+}
+.backup-note{
+  font-size:12.5px;
+  color: var(--ink-dim);
+  margin:0 0 14px;
+  line-height:1.6;
+}
+.backup-buttons{
+  display:flex;
+  gap:10px;
+}
+.btn-secondary{
+  flex:1;
+  text-align:center;
+  padding:11px 6px;
+  border:1px solid var(--ink);
+  border-radius:8px;
+  background: transparent;
+  color: var(--ink);
+  font-family:inherit;
+  font-size:13px;
+  font-weight:700;
+  cursor:pointer;
+  display:block;
+}
+.backup-status{
+  font-size:12px;
+  color: var(--gold);
+  margin:10px 0 0;
+  min-height:14px;
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="cover">
+    <div class="app-title">節約帳</div>
+    <div class="month-nav">
+      <button id="prevMonth">‹</button>
+      <span id="monthLabel">2026年9月</span>
+      <button id="nextMonth">›</button>
+    </div>
+    <div class="hero">
+      <div class="hero-label">今月、我慢して守ったお金</div>
+      <div class="hero-amount" id="heroSaved">¥0</div>
+      <div class="hero-sub">
+        <span>支出合計 <b id="heroExpense">¥0</b></span>
+        <span>差引 <b id="heroNet">¥0</b></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="storage-warning" id="storageWarning" style="display:none;">
+    ⚠ 自動保存がうまく動いていません。データが消える可能性があるので、「カテゴリ」タブの「バックアップを保存」でこまめに保存してください。
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-panel="input">入力</div>
+    <div class="tab" data-panel="history">履歴</div>
+    <div class="tab" data-panel="summary">集計</div>
+    <div class="tab" data-panel="categories">カテゴリ</div>
+  </div>
+
+  <div class="panel active" id="panel-input">
+    <div class="field">
+      <div class="field-label">カテゴリ</div>
+      <div class="chips" id="categoryChips"></div>
+      <div class="add-cat-inline" id="addCatInline" style="display:none;">
+        <input type="text" id="newCatInput" placeholder="新しいカテゴリ名">
+        <button type="button" class="btn-primary" style="width:auto;padding:8px 14px;margin:0;" id="confirmAddCat">追加</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">支出した金額</div>
+      <div class="amount-row expense-amount">
+        <span>¥</span>
+        <input type="number" id="expenseAmountInput" placeholder="0" min="0" inputmode="numeric" value="0">
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">我慢して節約した金額</div>
+      <div class="amount-row saved-amount">
+        <span>¥</span>
+        <input type="number" id="savedAmountInput" placeholder="0" min="0" inputmode="numeric">
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">日付</div>
+      <input type="date" id="dateInput">
+    </div>
+
+    <div class="field">
+      <div class="field-label">メモ（任意）</div>
+      <input type="text" id="memoInput" placeholder="例）飲み会を断った">
+    </div>
+
+    <button class="btn-primary" id="saveEntry">記録する</button>
+  </div>
+
+  <div class="panel" id="panel-history">
+    <div id="historyList"></div>
+  </div>
+
+  <div class="panel" id="panel-summary">
+    <div class="summary-totals">
+      <div class="total-card expense"><div class="t-label">支出合計</div><div class="t-amt" id="sumExpense">¥0</div></div>
+      <div class="total-card saved"><div class="t-label">節約合計</div><div class="t-amt" id="sumSaved">¥0</div></div>
+      <div class="total-card net"><div class="t-label">差引</div><div class="t-amt" id="sumNet">¥0</div></div>
+    </div>
+    <div id="categorySummary"></div>
+  </div>
+
+  <div class="panel" id="panel-categories">
+    <div id="categoryManageList"></div>
+    <div class="add-cat-form">
+      <input type="text" id="catManageNewInput" placeholder="新しいカテゴリ名">
+      <button type="button" id="catManageAddBtn">追加</button>
+    </div>
+
+    <div class="backup-section">
+      <div class="field-label">データのバックアップ</div>
+      <p class="backup-note">記録が消える不安があるときは、時々バックアップを保存しておくと安心です。</p>
+      <div class="backup-buttons">
+        <button type="button" class="btn-secondary" id="exportBtn">バックアップを保存</button>
+        <label class="btn-secondary" for="importFile">バックアップを読み込む</label>
+        <input type="file" id="importFile" accept="application/json" style="display:none;">
+      </div>
+      <p class="backup-status" id="backupStatus"></p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  var state = {
+    categories: [],
+    entries: [],
+    selectedCategoryId: null,
+    viewMonth: null // {year, month(0-11)}
+  };
+
+  var DEFAULT_CATEGORIES = [
+    {name:'交際費', defaultAmount:3000},
+    {name:'タバコ', defaultAmount:500},
+    {name:'昼食代', defaultAmount:800},
+    {name:'外食', defaultAmount:0},
+    {name:'その他', defaultAmount:0}
+  ];
+
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+  function todayStr(){
+    var d = new Date();
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+
+  function yen(n){ return '¥' + Math.round(n).toLocaleString('ja-JP'); }
+
+  var hasClaudeStorage = (typeof window.storage !== 'undefined' && window.storage !== null);
+
+  async function storageGet(key){
+    if(hasClaudeStorage){
+      var r = await window.storage.get(key, false);
+      return r.value;
+    } else {
+      var v = localStorage.getItem(key);
+      if(v === null) throw new Error('not found: ' + key);
+      return v;
+    }
+  }
+
+  async function storageSet(key, value){
+    if(hasClaudeStorage){
+      await window.storage.set(key, value, false);
+    } else {
+      localStorage.setItem(key, value);
+    }
+  }
+
+  async function loadData(){
+    try{
+      state.categories = JSON.parse(await storageGet('kakeibo:categories'));
+    }catch(e){
+      var shadowC = tryShadowLoad('kakeibo:categories');
+      if(shadowC){
+        state.categories = shadowC;
+      } else {
+        state.categories = DEFAULT_CATEGORIES.map(function(c){ return {id: uid(), name: c.name, defaultAmount: c.defaultAmount}; });
+      }
+      await saveCategories();
+    }
+    try{
+      state.entries = JSON.parse(await storageGet('kakeibo:entries'));
+    }catch(e){
+      var shadowE = tryShadowLoad('kakeibo:entries');
+      state.entries = shadowE || [];
+      await saveEntries();
+    }
+  }
+
+  function tryShadowLoad(key){
+    try{
+      var v = localStorage.getItem(key + ':shadow');
+      return v ? JSON.parse(v) : null;
+    }catch(e){ return null; }
+  }
+
+  async function saveCategories(){
+    try{
+      await storageSet('kakeibo:categories', JSON.stringify(state.categories));
+    }catch(e){
+      console.error('save categories failed', e);
+      shadowSave('kakeibo:categories', JSON.stringify(state.categories));
+      showStorageWarning();
+    }
+  }
+  async function saveEntries(){
+    try{
+      await storageSet('kakeibo:entries', JSON.stringify(state.entries));
+    }catch(e){
+      console.error('save entries failed', e);
+      shadowSave('kakeibo:entries', JSON.stringify(state.entries));
+      showStorageWarning();
+    }
+  }
+
+  function shadowSave(key, value){
+    // best-effort extra copy in case the primary storage call failed;
+    // harmless if unavailable in this environment
+    try{ localStorage.setItem(key + ':shadow', value); }catch(e){ /* ignore */ }
+  }
+
+  function showStorageWarning(){
+    var el = document.getElementById('storageWarning');
+    if(el) el.style.display = 'block';
+  }
+
+  function categoryName(id){
+    var c = state.categories.find(function(x){ return x.id === id; });
+    return c ? c.name : '（未分類）';
+  }
+
+  /* ---- month helpers ---- */
+  function monthKey(y,m){ return y+'-'+m; }
+  function entriesInMonth(y,m){
+    return state.entries.filter(function(e){
+      var d = new Date(e.date+'T00:00:00');
+      return d.getFullYear()===y && d.getMonth()===m;
+    });
+  }
+
+  function renderMonthLabel(){
+    document.getElementById('monthLabel').textContent = state.viewMonth.year+'年'+(state.viewMonth.month+1)+'月';
+  }
+
+  /* ---- hero ---- */
+  function renderHero(){
+    var list = entriesInMonth(state.viewMonth.year, state.viewMonth.month);
+    var saved = list.filter(function(e){return e.type==='saved';}).reduce(function(a,e){return a+e.amount;},0);
+    var expense = list.filter(function(e){return e.type==='expense';}).reduce(function(a,e){return a+e.amount;},0);
+    document.getElementById('heroSaved').textContent = yen(saved);
+    document.getElementById('heroExpense').textContent = yen(expense);
+    document.getElementById('heroNet').textContent = yen(saved-expense);
+  }
+
+  /* ---- category chips (input panel) ---- */
+  function renderCategoryChips(){
+    var wrap = document.getElementById('categoryChips');
+    wrap.innerHTML = '';
+    state.categories.forEach(function(c){
+      var chip = document.createElement('div');
+      chip.className = 'chip' + (state.selectedCategoryId===c.id ? ' selected' : '');
+      chip.textContent = c.name;
+      chip.addEventListener('click', function(){
+        state.selectedCategoryId = c.id;
+        renderCategoryChips();
+        applyDefaultAmount();
+      });
+      wrap.appendChild(chip);
+    });
+    var addChip = document.createElement('div');
+    addChip.className = 'chip add';
+    addChip.textContent = '＋ 新規';
+    addChip.addEventListener('click', function(){
+      var box = document.getElementById('addCatInline');
+      box.style.display = box.style.display === 'none' ? 'flex' : 'none';
+      document.getElementById('newCatInput').focus();
+    });
+    wrap.appendChild(addChip);
+  }
+
+  function applyDefaultAmount(){
+    var c = state.categories.find(function(x){ return x.id === state.selectedCategoryId; });
+    if(c && c.defaultAmount){
+      document.getElementById('savedAmountInput').value = c.defaultAmount;
+    }
+  }
+
+  async function addCategory(name, fromInputPanel){
+    name = name.trim();
+    if(!name) return null;
+    var cat = {id: uid(), name: name, defaultAmount: 0};
+    state.categories.push(cat);
+    await saveCategories();
+    return cat;
+  }
+
+  /* ---- history ---- */
+  function renderHistory(){
+    var container = document.getElementById('historyList');
+    container.innerHTML = '';
+    var list = entriesInMonth(state.viewMonth.year, state.viewMonth.month)
+      .slice()
+      .sort(function(a,b){ return b.date.localeCompare(a.date) || b.createdAt-a.createdAt; });
+
+    if(list.length===0){
+      container.innerHTML = '<div class="empty-note">この月の記録はまだありません</div>';
+      return;
+    }
+
+    var byDate = {};
+    list.forEach(function(e){
+      if(!byDate[e.date]) byDate[e.date] = [];
+      byDate[e.date].push(e);
+    });
+
+    Object.keys(byDate).sort().reverse().forEach(function(date){
+      var group = document.createElement('div');
+      group.className = 'day-group';
+      var d = new Date(date+'T00:00:00');
+      var heading = document.createElement('div');
+      heading.className = 'day-heading';
+      heading.textContent = (d.getMonth()+1)+'月'+d.getDate()+'日';
+      group.appendChild(heading);
+
+      byDate[date].forEach(function(e){
+        var line = document.createElement('div');
+        line.className = 'ledger-line';
+        line.innerHTML =
+          '<span class="cat">'+categoryName(e.categoryId)+'</span>' +
+          (e.memo ? '<span class="memo">'+escapeHtml(e.memo)+'</span>' : '') +
+          '<span class="leader"></span>' +
+          '<span class="amt '+e.type+'">'+ (e.type==='expense'?'-':'+') + yen(e.amount).slice(1) +'</span>';
+        line.addEventListener('click', function(){
+          if(line.classList.contains('confirming')){
+            deleteEntry(e.id);
+          } else {
+            document.querySelectorAll('.ledger-line.confirming').forEach(function(l){ l.classList.remove('confirming'); });
+            line.classList.add('confirming');
+            var tag = document.createElement('span');
+            tag.className = 'confirm-del';
+            tag.textContent = 'もう一度タップで削除';
+            line.appendChild(tag);
+          }
+        });
+        group.appendChild(line);
+      });
+      container.appendChild(group);
+    });
+  }
+
+  function escapeHtml(s){
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  async function deleteEntry(id){
+    state.entries = state.entries.filter(function(e){ return e.id !== id; });
+    await saveEntries();
+    renderAll();
+  }
+
+  /* ---- summary ---- */
+  function renderSummary(){
+    var list = entriesInMonth(state.viewMonth.year, state.viewMonth.month);
+    var totalExpense = list.filter(function(e){return e.type==='expense';}).reduce(function(a,e){return a+e.amount;},0);
+    var totalSaved = list.filter(function(e){return e.type==='saved';}).reduce(function(a,e){return a+e.amount;},0);
+    document.getElementById('sumExpense').textContent = yen(totalExpense);
+    document.getElementById('sumSaved').textContent = yen(totalSaved);
+    document.getElementById('sumNet').textContent = yen(totalSaved-totalExpense);
+
+    var byCat = {};
+    state.categories.forEach(function(c){ byCat[c.id] = {expense:0, saved:0}; });
+    list.forEach(function(e){
+      if(!byCat[e.categoryId]) byCat[e.categoryId] = {expense:0, saved:0};
+      byCat[e.categoryId][e.type] += e.amount;
+    });
+
+    var maxVal = 1;
+    Object.keys(byCat).forEach(function(id){
+      maxVal = Math.max(maxVal, byCat[id].expense, byCat[id].saved);
+    });
+
+    var wrap = document.getElementById('categorySummary');
+    wrap.innerHTML = '';
+    var anyData = false;
+    Object.keys(byCat).forEach(function(id){
+      var v = byCat[id];
+      if(v.expense===0 && v.saved===0) return;
+      anyData = true;
+      var row = document.createElement('div');
+      row.className = 'cat-row';
+      row.innerHTML =
+        '<div class="cat-name">'+categoryName(id)+'</div>' +
+        '<div class="cat-bar-track"><div class="cat-bar expense" style="width:'+(v.expense/maxVal*100)+'%"></div></div>' +
+        '<div class="cat-figures"><span>支出 '+yen(v.expense)+'</span></div>' +
+        '<div class="cat-bar-track" style="margin-top:6px;"><div class="cat-bar saved" style="width:'+(v.saved/maxVal*100)+'%"></div></div>' +
+        '<div class="cat-figures"><span>節約 '+yen(v.saved)+'</span></div>';
+      wrap.appendChild(row);
+    });
+    if(!anyData){
+      wrap.innerHTML = '<div class="empty-note">この月の記録はまだありません</div>';
+    }
+  }
+
+  /* ---- category management ---- */
+  function renderCategoryManage(){
+    var wrap = document.getElementById('categoryManageList');
+    wrap.innerHTML = '';
+    state.categories.forEach(function(c, idx){
+      var row = document.createElement('div');
+      row.className = 'cat-manage-row';
+
+      var reorderWrap = document.createElement('div');
+      reorderWrap.className = 'reorder-wrap';
+      var upBtn = document.createElement('button');
+      upBtn.className = 'icon-btn reorder-btn';
+      upBtn.textContent = '▲';
+      upBtn.disabled = (idx === 0);
+      upBtn.addEventListener('click', async function(){
+        if(idx === 0) return;
+        var tmp = state.categories[idx-1];
+        state.categories[idx-1] = state.categories[idx];
+        state.categories[idx] = tmp;
+        await saveCategories();
+        renderAll();
+      });
+      var downBtn = document.createElement('button');
+      downBtn.className = 'icon-btn reorder-btn';
+      downBtn.textContent = '▼';
+      downBtn.disabled = (idx === state.categories.length - 1);
+      downBtn.addEventListener('click', async function(){
+        if(idx === state.categories.length - 1) return;
+        var tmp = state.categories[idx+1];
+        state.categories[idx+1] = state.categories[idx];
+        state.categories[idx] = tmp;
+        await saveCategories();
+        renderAll();
+      });
+      reorderWrap.appendChild(upBtn);
+      reorderWrap.appendChild(downBtn);
+      row.appendChild(reorderWrap);
+
+      var input = document.createElement('input');
+      input.type = 'text';
+      input.value = c.name;
+      input.addEventListener('change', async function(){
+        c.name = input.value.trim() || c.name;
+        await saveCategories();
+        renderAll();
+      });
+
+      var defaultWrap = document.createElement('div');
+      defaultWrap.style.display = 'flex';
+      defaultWrap.style.alignItems = 'baseline';
+      defaultWrap.style.gap = '2px';
+      defaultWrap.style.flexShrink = '0';
+      var defaultLabel = document.createElement('span');
+      defaultLabel.textContent = '¥';
+      defaultLabel.style.fontSize = '12px';
+      defaultLabel.style.color = 'var(--ink-dim)';
+      var defaultInput = document.createElement('input');
+      defaultInput.type = 'number';
+      defaultInput.min = '0';
+      defaultInput.value = c.defaultAmount || 0;
+      defaultInput.style.width = '64px';
+      defaultInput.title = '我慢した時の目安金額';
+      defaultInput.addEventListener('change', async function(){
+        c.defaultAmount = parseFloat(defaultInput.value) || 0;
+        await saveCategories();
+      });
+      defaultWrap.appendChild(defaultLabel);
+      defaultWrap.appendChild(defaultInput);
+
+      var del = document.createElement('button');
+      del.className = 'icon-btn';
+      del.textContent = '×';
+      del.addEventListener('click', async function(){
+        state.categories = state.categories.filter(function(x){ return x.id !== c.id; });
+        await saveCategories();
+        renderAll();
+      });
+      row.appendChild(input);
+      row.appendChild(defaultWrap);
+      row.appendChild(del);
+      wrap.appendChild(row);
+    });
+    if(state.categories.length){
+      var hint = document.createElement('div');
+      hint.className = 'empty-note';
+      hint.style.padding = '10px 0 0';
+      hint.style.textAlign = 'left';
+      hint.textContent = '¥の欄は「我慢して節約した」を選んだ時に自動で入る目安金額です';
+      wrap.appendChild(hint);
+    }
+  }
+
+  /* ---- render all ---- */
+  function renderAll(){
+    renderMonthLabel();
+    renderHero();
+    renderCategoryChips();
+    renderHistory();
+    renderSummary();
+    renderCategoryManage();
+  }
+
+  /* ---- events ---- */
+  document.querySelectorAll('.tab').forEach(function(tab){
+    tab.addEventListener('click', function(){
+      document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+      document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+      tab.classList.add('active');
+      document.getElementById('panel-'+tab.dataset.panel).classList.add('active');
+    });
+  });
+
+  
+  document.getElementById('confirmAddCat').addEventListener('click', async function(){
+    var input = document.getElementById('newCatInput');
+    var cat = await addCategory(input.value);
+    if(cat){
+      state.selectedCategoryId = cat.id;
+      input.value = '';
+      document.getElementById('addCatInline').style.display = 'none';
+      renderCategoryChips();
+    }
+  });
+
+  document.getElementById('catManageAddBtn').addEventListener('click', async function(){
+    var input = document.getElementById('catManageNewInput');
+    var cat = await addCategory(input.value);
+    if(cat){
+      input.value = '';
+      renderAll();
+    }
+  });
+
+  ['expenseAmountInput','savedAmountInput'].forEach(function(id){
+    document.getElementById(id).addEventListener('focus', function(){
+      this.select();
+    });
+  });
+
+  document.getElementById('prevMonth').addEventListener('click', function(){
+    state.viewMonth.month -= 1;
+    if(state.viewMonth.month < 0){ state.viewMonth.month = 11; state.viewMonth.year -= 1; }
+    renderAll();
+  });
+  document.getElementById('nextMonth').addEventListener('click', function(){
+    state.viewMonth.month += 1;
+    if(state.viewMonth.month > 11){ state.viewMonth.month = 0; state.viewMonth.year += 1; }
+    renderAll();
+  });
+
+  document.getElementById('saveEntry').addEventListener('click', async function(){
+    var expenseVal = parseFloat(document.getElementById('expenseAmountInput').value) || 0;
+    var savedVal = parseFloat(document.getElementById('savedAmountInput').value) || 0;
+
+    if(!state.selectedCategoryId){
+      alertInline();
+      return;
+    }
+    if(expenseVal <= 0 && savedVal <= 0){
+      document.getElementById('expenseAmountInput').focus();
+      return;
+    }
+
+    var dateVal = document.getElementById('dateInput').value || todayStr();
+    var memoVal = document.getElementById('memoInput').value.trim();
+
+    if(expenseVal > 0){
+      state.entries.push({
+        id: uid(),
+        type: 'expense',
+        categoryId: state.selectedCategoryId,
+        amount: expenseVal,
+        date: dateVal,
+        memo: memoVal,
+        createdAt: Date.now()
+      });
+    }
+    if(savedVal > 0){
+      state.entries.push({
+        id: uid(),
+        type: 'saved',
+        categoryId: state.selectedCategoryId,
+        amount: savedVal,
+        date: dateVal,
+        memo: memoVal,
+        createdAt: Date.now()
+      });
+    }
+    await saveEntries();
+
+    document.getElementById('expenseAmountInput').value = '0';
+    document.getElementById('memoInput').value = '';
+    applyDefaultAmount();
+
+    renderAll();
+  });
+
+  function alertInline(){
+    var chips = document.getElementById('categoryChips');
+    chips.style.outline = '1px solid var(--brick)';
+    setTimeout(function(){ chips.style.outline = 'none'; }, 900);
+  }
+
+  document.getElementById('exportBtn').addEventListener('click', function(){
+    var payload = {
+      app: 'kakeibo-setsuyaku',
+      exportedAt: new Date().toISOString(),
+      categories: state.categories,
+      entries: state.entries
+    };
+    var blob = new Blob([JSON.stringify(payload, null, 2)], {type: 'application/json'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    var d = new Date();
+    var stamp = d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
+    a.href = url;
+    a.download = 'setsuyakucho-backup-' + stamp + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showBackupStatus('バックアップを保存しました');
+  });
+
+  document.getElementById('importFile').addEventListener('change', function(e){
+    var file = e.target.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = async function(){
+      try{
+        var data = JSON.parse(reader.result);
+        if(!Array.isArray(data.categories) || !Array.isArray(data.entries)){
+          throw new Error('invalid format');
+        }
+        state.categories = data.categories;
+        state.entries = data.entries;
+        await saveCategories();
+        await saveEntries();
+        if(state.categories.length > 0){
+          state.selectedCategoryId = state.categories[0].id;
+        }
+        renderAll();
+        applyDefaultAmount();
+        showBackupStatus('バックアップを読み込みました');
+      }catch(err){
+        showBackupStatus('読み込めませんでした。ファイルを確認してください');
+      }
+      e.target.value = '';
+    };
+    reader.readAsText(file);
+  });
+
+  function showBackupStatus(msg){
+    var el = document.getElementById('backupStatus');
+    el.textContent = msg;
+    setTimeout(function(){ el.textContent = ''; }, 4000);
+  }
+
+  /* ---- init ---- */
+  async function init(){
+    var now = new Date();
+    state.viewMonth = { year: now.getFullYear(), month: now.getMonth() };
+    document.getElementById('dateInput').value = todayStr();
+
+    await loadData();
+    if(state.categories.length > 0){
+      state.selectedCategoryId = state.categories[0].id;
+    }
+    renderAll();
+    applyDefaultAmount();
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
