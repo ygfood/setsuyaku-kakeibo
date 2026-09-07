@@ -206,6 +206,31 @@ input:focus{ outline:none; border-bottom-color: var(--ink); }
 }
 .btn-primary:active{ opacity:.85; }
 
+.undo-toast{
+  margin-top:12px;
+  padding:11px 14px;
+  background: var(--paper-2);
+  border:1px solid var(--rule);
+  border-radius:8px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  font-size:13px;
+  color: var(--ink-dim);
+}
+.undo-toast button{
+  background:none;
+  border:none;
+  color: var(--brick);
+  font-weight:700;
+  font-family:inherit;
+  font-size:13px;
+  cursor:pointer;
+  white-space:nowrap;
+  flex-shrink:0;
+}
+
 /* ---- History ---- */
 .day-group{ margin-bottom:22px; }
 .day-heading{
@@ -261,6 +286,11 @@ input:focus{ outline:none; border-bottom-color: var(--ink); }
   gap:10px;
   margin-bottom:24px;
 }
+#baselineSection:not(:empty){
+  margin-bottom:26px;
+  padding-bottom:20px;
+  border-bottom:1px solid var(--rule);
+}
 .total-card{
   flex:1;
   background: var(--paper-2);
@@ -296,13 +326,32 @@ input:focus{ outline:none; border-bottom-color: var(--ink); }
 }
 
 /* ---- Categories ---- */
-.cat-manage-row{
-  display:flex; align-items:center;
-  padding:11px 0;
+.cat-card{
+  padding:12px 0;
   border-bottom:1px solid var(--rule);
-  gap:8px;
 }
-.cat-manage-row input{ flex:1; }
+.cat-card-top{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:10px;
+}
+.cat-card-top input[type=text]{ flex:1; }
+.cat-card-fields{
+  display:flex;
+  gap:14px;
+  padding-left:32px;
+}
+.cat-card-field{ flex:1; }
+.cat-card-field-label{
+  font-size:11px;
+  color: var(--ink-dim);
+  margin-bottom:4px;
+}
+.cat-card-field input{
+  font-size:14px;
+  padding:6px 2px;
+}
 .icon-btn{
   background:none; border:none; cursor:pointer;
   color: var(--ink-dim); font-size:16px; padding:4px 6px;
@@ -426,6 +475,10 @@ input:focus{ outline:none; border-bottom-color: var(--ink); }
     </div>
 
     <button class="btn-primary" id="saveEntry">記録する</button>
+    <div class="undo-toast" id="undoToast" style="display:none;">
+      <span id="undoToastText"></span>
+      <button type="button" id="undoBtn">取り消す</button>
+    </div>
   </div>
 
   <div class="panel" id="panel-history">
@@ -438,6 +491,7 @@ input:focus{ outline:none; border-bottom-color: var(--ink); }
       <div class="total-card saved"><div class="t-label">節約合計</div><div class="t-amt" id="sumSaved">¥0</div></div>
       <div class="total-card net"><div class="t-label">差引</div><div class="t-amt" id="sumNet">¥0</div></div>
     </div>
+    <div id="baselineSection"></div>
     <div id="categorySummary"></div>
   </div>
 
@@ -631,7 +685,7 @@ input:focus{ outline:none; border-bottom-color: var(--ink); }
   async function addCategory(name, fromInputPanel){
     name = name.trim();
     if(!name) return null;
-    var cat = {id: uid(), name: name, defaultAmount: 0};
+    var cat = {id: uid(), name: name, defaultAmount: 0, baseline: 0};
     state.categories.push(cat);
     await saveCategories();
     return cat;
@@ -703,8 +757,40 @@ input:focus{ outline:none; border-bottom-color: var(--ink); }
     renderAll();
   }
 
+  function renderBaselineProgress(){
+    var wrap = document.getElementById('baselineSection');
+    var list = entriesInMonth(state.viewMonth.year, state.viewMonth.month);
+    var expenseByCat = {};
+    list.filter(function(e){return e.type==='expense';}).forEach(function(e){
+      expenseByCat[e.categoryId] = (expenseByCat[e.categoryId]||0) + e.amount;
+    });
+
+    var withBaseline = state.categories.filter(function(c){ return c.baseline && c.baseline > 0; });
+    if(withBaseline.length === 0){
+      wrap.innerHTML = '';
+      return;
+    }
+
+    var html = '<div class="field-label" style="margin-bottom:12px;">先月と比べた今のペース</div>';
+    withBaseline.forEach(function(c){
+      var spent = expenseByCat[c.id] || 0;
+      var pct = Math.min(100, (spent / c.baseline) * 100);
+      var over = spent > c.baseline;
+      var diff = c.baseline - spent;
+      html +=
+        '<div class="cat-row">' +
+          '<div class="cat-name">'+escapeHtml(c.name)+'</div>' +
+          '<div class="cat-bar-track"><div class="cat-bar '+(over?'expense':'saved')+'" style="width:'+pct+'%"></div></div>' +
+          '<div class="cat-figures"><span>今月 '+yen(spent)+' / 先月目安 '+yen(c.baseline)+'</span>' +
+          '<span>'+(over ? '超過 '+yen(Math.abs(diff)) : '残り '+yen(diff))+'</span></div>' +
+        '</div>';
+    });
+    wrap.innerHTML = html;
+  }
+
   /* ---- summary ---- */
   function renderSummary(){
+    renderBaselineProgress();
     var list = entriesInMonth(state.viewMonth.year, state.viewMonth.month);
     var totalExpense = list.filter(function(e){return e.type==='expense';}).reduce(function(a,e){return a+e.amount;},0);
     var totalSaved = list.filter(function(e){return e.type==='saved';}).reduce(function(a,e){return a+e.amount;},0);
@@ -751,8 +837,11 @@ input:focus{ outline:none; border-bottom-color: var(--ink); }
     var wrap = document.getElementById('categoryManageList');
     wrap.innerHTML = '';
     state.categories.forEach(function(c, idx){
-      var row = document.createElement('div');
-      row.className = 'cat-manage-row';
+      var card = document.createElement('div');
+      card.className = 'cat-card';
+
+      var top = document.createElement('div');
+      top.className = 'cat-card-top';
 
       var reorderWrap = document.createElement('div');
       reorderWrap.className = 'reorder-wrap';
@@ -782,38 +871,15 @@ input:focus{ outline:none; border-bottom-color: var(--ink); }
       });
       reorderWrap.appendChild(upBtn);
       reorderWrap.appendChild(downBtn);
-      row.appendChild(reorderWrap);
 
-      var input = document.createElement('input');
-      input.type = 'text';
-      input.value = c.name;
-      input.addEventListener('change', async function(){
-        c.name = input.value.trim() || c.name;
+      var nameInput = document.createElement('input');
+      nameInput.type = 'text';
+      nameInput.value = c.name;
+      nameInput.addEventListener('change', async function(){
+        c.name = nameInput.value.trim() || c.name;
         await saveCategories();
         renderAll();
       });
-
-      var defaultWrap = document.createElement('div');
-      defaultWrap.style.display = 'flex';
-      defaultWrap.style.alignItems = 'baseline';
-      defaultWrap.style.gap = '2px';
-      defaultWrap.style.flexShrink = '0';
-      var defaultLabel = document.createElement('span');
-      defaultLabel.textContent = '¥';
-      defaultLabel.style.fontSize = '12px';
-      defaultLabel.style.color = 'var(--ink-dim)';
-      var defaultInput = document.createElement('input');
-      defaultInput.type = 'number';
-      defaultInput.min = '0';
-      defaultInput.value = c.defaultAmount || 0;
-      defaultInput.style.width = '64px';
-      defaultInput.title = '我慢した時の目安金額';
-      defaultInput.addEventListener('change', async function(){
-        c.defaultAmount = parseFloat(defaultInput.value) || 0;
-        await saveCategories();
-      });
-      defaultWrap.appendChild(defaultLabel);
-      defaultWrap.appendChild(defaultInput);
 
       var del = document.createElement('button');
       del.className = 'icon-btn';
@@ -823,17 +889,60 @@ input:focus{ outline:none; border-bottom-color: var(--ink); }
         await saveCategories();
         renderAll();
       });
-      row.appendChild(input);
-      row.appendChild(defaultWrap);
-      row.appendChild(del);
-      wrap.appendChild(row);
+
+      top.appendChild(reorderWrap);
+      top.appendChild(nameInput);
+      top.appendChild(del);
+
+      var fields = document.createElement('div');
+      fields.className = 'cat-card-fields';
+
+      var defaultField = document.createElement('div');
+      defaultField.className = 'cat-card-field';
+      var defaultLabel = document.createElement('div');
+      defaultLabel.className = 'cat-card-field-label';
+      defaultLabel.textContent = '節約時の目安金額';
+      var defaultInput = document.createElement('input');
+      defaultInput.type = 'number';
+      defaultInput.min = '0';
+      defaultInput.value = c.defaultAmount || 0;
+      defaultInput.addEventListener('change', async function(){
+        c.defaultAmount = parseFloat(defaultInput.value) || 0;
+        await saveCategories();
+      });
+      defaultField.appendChild(defaultLabel);
+      defaultField.appendChild(defaultInput);
+
+      var baselineField = document.createElement('div');
+      baselineField.className = 'cat-card-field';
+      var baselineLabel = document.createElement('div');
+      baselineLabel.className = 'cat-card-field-label';
+      baselineLabel.textContent = '先月のざっくり支出';
+      var baselineInput = document.createElement('input');
+      baselineInput.type = 'number';
+      baselineInput.min = '0';
+      baselineInput.value = c.baseline || 0;
+      baselineInput.addEventListener('change', async function(){
+        c.baseline = parseFloat(baselineInput.value) || 0;
+        await saveCategories();
+        renderAll();
+      });
+      baselineField.appendChild(baselineLabel);
+      baselineField.appendChild(baselineInput);
+
+      fields.appendChild(defaultField);
+      fields.appendChild(baselineField);
+
+      card.appendChild(top);
+      card.appendChild(fields);
+      wrap.appendChild(card);
     });
     if(state.categories.length){
       var hint = document.createElement('div');
       hint.className = 'empty-note';
       hint.style.padding = '10px 0 0';
       hint.style.textAlign = 'left';
-      hint.textContent = '¥の欄は「我慢して節約した」を選んだ時に自動で入る目安金額です';
+      hint.innerHTML = '「節約時の目安金額」は我慢した時に自動で入る単価です。<br>「先月のざっくり支出」を入れておくと、集計タブで今月のペースと比較できます。';
       wrap.appendChild(hint);
     }
   }
@@ -911,9 +1020,11 @@ input:focus{ outline:none; border-bottom-color: var(--ink); }
 
     var dateVal = document.getElementById('dateInput').value || todayStr();
     var memoVal = document.getElementById('memoInput').value.trim();
+    var justAddedIds = [];
+    var toastParts = [];
 
     if(expenseVal > 0){
-      state.entries.push({
+      var expEntry = {
         id: uid(),
         type: 'expense',
         categoryId: state.selectedCategoryId,
@@ -921,10 +1032,13 @@ input:focus{ outline:none; border-bottom-color: var(--ink); }
         date: dateVal,
         memo: memoVal,
         createdAt: Date.now()
-      });
+      };
+      state.entries.push(expEntry);
+      justAddedIds.push(expEntry.id);
+      toastParts.push('支出 '+yen(expenseVal));
     }
     if(savedVal > 0){
-      state.entries.push({
+      var savEntry = {
         id: uid(),
         type: 'saved',
         categoryId: state.selectedCategoryId,
@@ -932,7 +1046,10 @@ input:focus{ outline:none; border-bottom-color: var(--ink); }
         date: dateVal,
         memo: memoVal,
         createdAt: Date.now()
-      });
+      };
+      state.entries.push(savEntry);
+      justAddedIds.push(savEntry.id);
+      toastParts.push('節約 '+yen(savedVal));
     }
     await saveEntries();
 
@@ -941,7 +1058,27 @@ input:focus{ outline:none; border-bottom-color: var(--ink); }
     applyDefaultAmount();
 
     renderAll();
+    showUndoToast(justAddedIds, categoryName(state.selectedCategoryId)+' '+toastParts.join(' / ')+' を記録しました');
   });
+
+  var undoTimer = null;
+  function showUndoToast(entryIds, message){
+    var toast = document.getElementById('undoToast');
+    document.getElementById('undoToastText').textContent = message;
+    toast.style.display = 'flex';
+
+    var undoBtn = document.getElementById('undoBtn');
+    undoBtn.onclick = async function(){
+      state.entries = state.entries.filter(function(e){ return entryIds.indexOf(e.id) === -1; });
+      await saveEntries();
+      renderAll();
+      toast.style.display = 'none';
+      if(undoTimer) clearTimeout(undoTimer);
+    };
+
+    if(undoTimer) clearTimeout(undoTimer);
+    undoTimer = setTimeout(function(){ toast.style.display = 'none'; }, 8000);
+  }
 
   function alertInline(){
     var chips = document.getElementById('categoryChips');
